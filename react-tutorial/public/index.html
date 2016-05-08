@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>React Tutorial</title>
+    <!-- Not present in the tutorial. Just for basic styling. -->
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="https://bootswatch.com/readable/bootstrap.min.css" charset="utf-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.1/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.1/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.11.0/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.5/marked.min.js"></script>
+  </head>
+  <body>
+    <div id="content"></div>
+    <!-- <script type="text/babel" src="scripts/example.js"></script> -->
+    <script type="text/babel">
+      class Comment extends React.Component {
+        render() {
+          return (
+            <div className="comment">
+              <h4 className="commentAuthor">
+                {this.props.author}
+              </h4>
+              <span dangerouslySetInnerHTML={this.rawMarkup()} />
+            </div>
+          )
+        }
+
+        rawMarkup() {
+          let rawMarkup = marked(this.props.children.toString(), {
+            sanitize: true
+          });
+
+          return { __html: rawMarkup };
+        }
+      }
+
+      class CommentList extends React.Component {
+        render() {
+          return (
+            <div className="commentList">{this._commentNodes}</div>
+          );
+        }
+
+        get _commentNodes() {
+          return this.props.data.map(comment =>
+            <Comment author={comment.author} key={comment.id}>
+              {comment.text}
+            </Comment>
+          );
+        }
+      }
+
+      class CommentForm extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {author: "", text: ""};
+        }
+
+        render() {
+          return (
+            <form className="form-inline commentForm" onSubmit={this.handleSubmit.bind(this)}>
+              <div className="form-group">
+                <input type="text"
+                 className="form-control"
+                 placeholder="Your name"
+                 value={this.state.author}
+                 onChange={this.handleAuthorChange.bind(this)} />
+              </div>
+
+              <div className="form-group">
+                <input type="text"
+                 className="form-control"
+                 placeholder="Say something..."
+                 value={this.state.text}
+                 onChange={this.handleTextChange.bind(this)} />
+              </div>
+
+              <input type="submit" value="Post"
+               className="btn btn-default"/>
+            </form>
+          );
+        }
+
+        handleAuthorChange(e) {
+          this._handleChangeOn("author", e);
+        }
+
+        handleTextChange(e) {
+          this._handleChangeOn("text", e);
+        }
+
+        handleSubmit(e) {
+          e.preventDefault();
+
+          let text = this.state.text.trim(),
+              author = this.state.author.trim();
+
+          if(!author || !text) {
+            return;
+          }
+
+          this.props.onCommentSubmit({author, text});
+          this.setState({author: "", text: ""});
+        }
+
+        _handleChangeOn(name, e) {
+          this.setState({[name]: e.target.value});
+        }
+      }
+
+      class CommentBox extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {data: []};
+        }
+
+        componentDidMount() {
+          this._loadCommentsFromServer();
+          setInterval(this._loadCommentsFromServer.bind(this), this.props.pollInterval);
+        }
+
+        _loadCommentsFromServer() {
+          axios.get(this.props.url)
+            .then(response => {
+              this.setState({data: response.data})
+            })
+            .catch(response => {
+              console.error(this.props.url, response.status, response.message);
+            });
+        }
+
+        render() {
+          return (
+            <div className="commentBox">
+              <h1>Comments</h1>
+              <CommentList data={this.state.data} />
+              <CommentForm onCommentSubmit={this.handleCommentSubmit.bind(this)} />
+            </div>
+          );
+        }
+
+        handleCommentSubmit(comment) {
+          comment.id = Date.now();
+
+          this.setState({data: [...this.state.data, comment]});
+
+          axios.post(this.props.url, comment)
+            .then(response => {
+              this.setState({data: response.data})
+            })
+            .catch(response => {
+              console.error(this.props.url, response.status, response.message);
+            });
+        }
+      }
+
+      ReactDOM.render(
+        <CommentBox url="/api/comments" pollInterval={2000}/>,
+        document.getElementById('content')
+      );
+    </script>
+  </body>
+</html>
