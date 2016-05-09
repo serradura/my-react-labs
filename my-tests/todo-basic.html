@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>To do App</title>
+    <style media="screen">
+      body {
+        padding: 20px
+      }
+    </style>
+    <link rel="stylesheet" href="https://bootswatch.com/paper/bootstrap.min.css" charset="utf-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.1/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.0.1/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.34/browser.js"></script>
+  </head>
+  <body>
+    <div id="container"></div>
+    <script type="text/babel">
+      class TodoList extends React.Component {
+        render() {
+          return (
+            <ol>{this.props.tasks.map((item, i) =>
+              <li key={i}>{item}</li>
+            )}</ol>
+          );
+        }
+      }
+
+      class TodoForm extends React.Component {
+        handleChange(e) {
+          this.props.onTaskChange(e.target.value);
+        }
+
+        handleSubmit(e) {
+          e.preventDefault();
+
+          this.props.onTaskSubmit(
+            this.refs.taskInput.value
+          );
+        }
+
+        render() {
+          let {tasks, text} = this.props;
+
+          return (
+            <form className="form-inline" onSubmit={this.handleSubmit.bind(this)}>
+              <div className="form-group">
+                <input
+                  type="text"
+                  ref="taskInput"
+                  className="form-control"
+                  value={text}
+                  onChange={this.handleChange.bind(this)} />
+              </div>
+              {' '}
+              <button className="btn btn-primary" >
+                Add{tasks.length ? ` #${tasks.length + 1}` : null }
+              </button>
+            </form>
+          );
+        }
+      }
+
+      class TodoApp extends React.Component {
+        constructor(props) {
+          super(props);
+
+          this.state = {
+            text: "",
+            tasks: []
+          };
+        }
+
+        handleTaskChange(text) {
+          this.setState({text});
+        }
+
+        handleTaskSubmit(text) {
+          this.setState({
+            text: "",
+            tasks: [...this.state.tasks, text]
+          });
+        }
+
+        render() {
+          let {tasks, text} = this.state;
+
+          return (
+            <div>
+              <h2>TODO:</h2>
+              <TodoList tasks={tasks} />
+              <TodoForm
+                {...this.state}
+                onTaskChange={this.handleTaskChange.bind(this)}
+                onTaskSubmit={this.handleTaskSubmit.bind(this)} />
+            </div>
+          );
+        }
+      }
+
+      ReactDOM.render(
+        <TodoApp />,
+        document.getElementById('container')
+      );
+    </script>
+  </body>
+</html>
